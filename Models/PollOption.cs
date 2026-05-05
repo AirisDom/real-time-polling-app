@@ -13,8 +13,15 @@ public class PollOption
     [StringLength(200, MinimumLength = 1, ErrorMessage = "Option text must be between 1 and 200 characters")]
     public string Text { get; set; } = string.Empty;
 
+    // Internal field for thread-safe vote counting with Interlocked
+    internal int _voteCount = 0;
+
     [Range(0, int.MaxValue, ErrorMessage = "Vote count cannot be negative")]
-    public int VoteCount { get; set; } = 0;
+    public int VoteCount
+    {
+        get => _voteCount;
+        set => _voteCount = value;
+    }
 
     public Poll? Poll { get; set; }
 }

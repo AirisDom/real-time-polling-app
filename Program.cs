@@ -1,8 +1,13 @@
+using _1_the_real_time_polling_app_focus_signalr_websockets.Repositories;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// Register the in-memory poll repository as singleton for thread-safe shared state
+builder.Services.AddSingleton<IPollRepository, InMemoryPollRepository>();
 
 var app = builder.Build();
 
