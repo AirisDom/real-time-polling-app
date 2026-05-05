@@ -97,6 +97,57 @@ app.MapPost("/api/polls", (CreatePollRequest request, IPollRepository repository
 .WithName("CreatePoll")
 .WithDescription("Create a new poll with a question and 2-4 options");
 
+// GET /api/polls/{roomCode} - Get poll for voters (without vote counts)
+app.MapGet("/api/polls/{roomCode}", (string roomCode, IPollRepository repository) =>
+{
+    var poll = repository.GetByRoomCode(roomCode);
+    if (poll == null)
+    {
+        return Results.NotFound(new { error = "Poll not found" });
+    }
+
+    var response = new GetPollResponse
+    {
+        Question = poll.Question,
+        RoomCode = poll.RoomCode,
+        Options = poll.Options.Select(o => new VoterPollOptionResponse
+        {
+            Id = o.Id,
+            Text = o.Text
+        }).ToList()
+    };
+
+    return Results.Ok(response);
+})
+.WithName("GetPoll")
+.WithDescription("Get a poll by room code for voters");
+
+// POST /api/polls/{roomCode}/vote - Cast a vote
+app.MapPost("/api/polls/{roomCode}/vote", (string roomCode, VoteRequest request, IPollRepository repository) =>
+{
+    var poll = repository.GetByRoomCode(roomCode);
+    if (poll == null)
+    {
+        return Results.NotFound(new { error = "Poll not found" });
+    }
+
+    var option = poll.Options.FirstOrDefault(o => o.Id == request.OptionId);
+    if (option == null)
+    {
+        return Results.BadRequest(new { error = "Invalid option ID" });
+    }
+
+    var success = repository.AddVote(roomCode, request.OptionId);
+    if (!success)
+    {
+        return Results.BadRequest(new { error = "Unable to record vote" });
+    }
+
+    return Results.Ok(new { message = "Vote recorded successfully" });
+})
+.WithName("CastVote")
+.WithDescription("Cast a vote for a poll option");
+
 app.Run();
 
 // Make Program class accessible for integration tests
