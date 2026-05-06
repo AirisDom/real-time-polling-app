@@ -3,6 +3,7 @@ using _1_the_real_time_polling_app_focus_signalr_websockets.Hubs;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Models;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Repositories;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Services;
+using Microsoft.AspNetCore.SignalR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -141,7 +142,7 @@ app.MapGet("/api/polls/{roomCode}", (string roomCode, IPollRepository repository
 .WithDescription("Get a poll by room code for voters");
 
 // POST /api/polls/{roomCode}/vote - Cast a vote
-app.MapPost("/api/polls/{roomCode}/vote", (string roomCode, VoteRequest request, IPollRepository repository) =>
+app.MapPost("/api/polls/{roomCode}/vote", async (string roomCode, VoteRequest request, IPollRepository repository, IHubContext<PollHub> hubContext) =>
 {
     var poll = repository.GetByRoomCode(roomCode);
     if (poll == null)
@@ -160,6 +161,20 @@ app.MapPost("/api/polls/{roomCode}/vote", (string roomCode, VoteRequest request,
     {
         return Results.BadRequest(new { error = "Unable to record vote" });
     }
+
+    var updatedPoll = repository.GetByRoomCode(roomCode);
+    var payload = new VoteUpdatePayload
+    {
+        RoomCode = roomCode,
+        Results = updatedPoll!.Options.Select(o => new OptionVoteCount
+        {
+            OptionId = o.Id,
+            Text = o.Text,
+            VoteCount = o.VoteCount
+        }).ToList()
+    };
+
+    await hubContext.Clients.Group(roomCode).SendAsync("VoteUpdated", payload);
 
     return Results.Ok(new { message = "Vote recorded successfully" });
 })
