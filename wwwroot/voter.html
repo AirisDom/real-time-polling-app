@@ -221,6 +221,39 @@
             background: #e0e0e0;
         }
 
+        .already-voted-container {
+            display: none;
+            text-align: center;
+        }
+
+        .already-voted-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        .already-voted-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        .already-voted-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .already-voted-text {
+            color: #666;
+            margin-bottom: 25px;
+        }
+
         .back-link {
             display: block;
             text-align: center;
@@ -272,6 +305,17 @@
                 <div id="voted-option" class="voted-option"></div>
                 <button type="button" class="vote-again-btn" id="vote-again-btn">Join Another Poll</button>
             </div>
+
+            <div id="already-voted-container" class="already-voted-container">
+                <div class="already-voted-icon">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                </div>
+                <h2 class="already-voted-title">Already Voted</h2>
+                <p class="already-voted-text">You have already cast your vote in this poll.</p>
+                <button type="button" class="vote-again-btn" id="try-another-btn">Join Another Poll</button>
+            </div>
         </div>
 
         <a href="presenter.html" class="back-link">Create your own poll →</a>
@@ -285,9 +329,20 @@
         const joinContainer = document.getElementById('join-container');
         const pollContainer = document.getElementById('poll-container');
         const confirmationContainer = document.getElementById('confirmation-container');
+        const alreadyVotedContainer = document.getElementById('already-voted-container');
         const voteAgainBtn = document.getElementById('vote-again-btn');
+        const tryAnotherBtn = document.getElementById('try-another-btn');
 
         let currentPoll = null;
+
+        function getVoterId() {
+            let voterId = localStorage.getItem('voterId');
+            if (!voterId) {
+                voterId = crypto.randomUUID();
+                localStorage.setItem('voterId', voterId);
+            }
+            return voterId;
+        }
 
         function showError(message) {
             errorMessage.textContent = message;
@@ -302,6 +357,7 @@
             joinContainer.style.display = 'block';
             pollContainer.style.display = 'none';
             confirmationContainer.style.display = 'none';
+            alreadyVotedContainer.style.display = 'none';
             roomCodeInput.value = '';
             currentPoll = null;
             hideError();
@@ -329,6 +385,7 @@
             joinContainer.style.display = 'none';
             pollContainer.style.display = 'block';
             confirmationContainer.style.display = 'none';
+            alreadyVotedContainer.style.display = 'none';
         }
 
         function showConfirmation(optionText) {
@@ -337,6 +394,14 @@
             joinContainer.style.display = 'none';
             pollContainer.style.display = 'none';
             confirmationContainer.style.display = 'block';
+            alreadyVotedContainer.style.display = 'none';
+        }
+
+        function showAlreadyVoted() {
+            joinContainer.style.display = 'none';
+            pollContainer.style.display = 'none';
+            confirmationContainer.style.display = 'none';
+            alreadyVotedContainer.style.display = 'block';
         }
 
         function setOptionButtonsDisabled(disabled) {
@@ -376,7 +441,8 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        optionId: option.id
+                        optionId: option.id,
+                        voterId: getVoterId()
                     })
                 });
 
@@ -387,6 +453,8 @@
                     if (response.status === 404) {
                         showError('Poll not found. It may have been closed.');
                         showJoinForm();
+                    } else if (response.status === 409) {
+                        showAlreadyVoted();
                     } else {
                         showError(data.error || 'Unable to submit vote. Please try again.');
                     }
@@ -426,6 +494,7 @@
         });
 
         voteAgainBtn.addEventListener('click', showJoinForm);
+        tryAnotherBtn.addEventListener('click', showJoinForm);
 
         roomCodeInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);

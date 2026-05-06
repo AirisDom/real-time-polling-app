@@ -306,6 +306,128 @@ public class InMemoryPollRepositoryTests
 
     #endregion
 
+    #region HasVoterVoted Tests
+
+    [Fact]
+    public void HasVoterVoted_NoVotes_ReturnsFalse()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+
+        var result = repository.HasVoterVoted(poll.RoomCode, "voter-123");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasVoterVoted_AfterVote_ReturnsTrue()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+        var optionId = poll.Options.First().Id;
+        var voterId = "voter-123";
+
+        repository.AddVote(poll.RoomCode, optionId, voterId);
+        var result = repository.HasVoterVoted(poll.RoomCode, voterId);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void HasVoterVoted_DifferentVoter_ReturnsFalse()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+        var optionId = poll.Options.First().Id;
+
+        repository.AddVote(poll.RoomCode, optionId, "voter-123");
+        var result = repository.HasVoterVoted(poll.RoomCode, "voter-456");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasVoterVoted_NonExistingPoll_ReturnsFalse()
+    {
+        var repository = CreateRepository();
+
+        var result = repository.HasVoterVoted("9999", "voter-123");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasVoterVoted_NullVoterId_ReturnsFalse()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+
+        var result = repository.HasVoterVoted(poll.RoomCode, null!);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void HasVoterVoted_EmptyVoterId_ReturnsFalse()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+
+        var result = repository.HasVoterVoted(poll.RoomCode, "");
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void AddVote_WithVoterId_TracksVoter()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+        var optionId = poll.Options.First().Id;
+        var voterId = "voter-abc";
+
+        repository.AddVote(poll.RoomCode, optionId, voterId);
+
+        Assert.True(repository.HasVoterVoted(poll.RoomCode, voterId));
+    }
+
+    [Fact]
+    public void AddVote_WithoutVoterId_DoesNotTrackVoter()
+    {
+        var repository = CreateRepository();
+        var poll = CreateTestPoll();
+        repository.CreatePoll(poll);
+        var optionId = poll.Options.First().Id;
+
+        repository.AddVote(poll.RoomCode, optionId);
+
+        Assert.False(repository.HasVoterVoted(poll.RoomCode, "any-voter"));
+    }
+
+    [Fact]
+    public void HasVoterVoted_DifferentPolls_TrackedSeparately()
+    {
+        var repository = CreateRepository();
+        var poll1 = CreateTestPoll("1111");
+        var poll2 = CreateTestPoll("2222");
+        repository.CreatePoll(poll1);
+        repository.CreatePoll(poll2);
+        var voterId = "voter-xyz";
+
+        repository.AddVote(poll1.RoomCode, poll1.Options.First().Id, voterId);
+
+        Assert.True(repository.HasVoterVoted(poll1.RoomCode, voterId));
+        Assert.False(repository.HasVoterVoted(poll2.RoomCode, voterId));
+    }
+
+    #endregion
+
     #region Thread-Safety Tests
 
     [Fact]

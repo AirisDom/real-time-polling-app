@@ -23,8 +23,14 @@ public interface IPollRepository
     /// </summary>
     /// <param name="roomCode">The room code of the poll.</param>
     /// <param name="optionId">The ID of the option to vote for.</param>
-    /// <returns>True if the vote was successfully added, false otherwise.</returns>
-    bool AddVote(string roomCode, int optionId);
+    /// <param name="voterId">Optional voter ID for deduplication.</param>
+    /// <returns>True if vote succeeded, false if poll/option not found.</returns>
+    bool AddVote(string roomCode, int optionId, string? voterId = null);
+
+    /// <summary>
+    /// Checks if a voter has already voted in a poll.
+    /// </summary>
+    bool HasVoterVoted(string roomCode, string voterId);
 
     /// <summary>
     /// Gets the current results (vote counts) for a poll.

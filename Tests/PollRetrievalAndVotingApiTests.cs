@@ -223,4 +223,117 @@ public class PollRetrievalAndVotingApiTests : IClassFixture<WebApplicationFactor
         Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
         Assert.Equal(HttpStatusCode.OK, response3.StatusCode);
     }
+
+    [Fact]
+    public async Task Vote_WithSameVoterId_Returns409Conflict()
+    {
+        var (client, createdPoll) = await CreatePollAsync();
+        var optionId = createdPoll.Options[0].Id;
+        var voterId = Guid.NewGuid().ToString();
+
+        var response1 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = voterId });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = voterId });
+
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, response2.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vote_WithSameVoterIdDifferentOption_Returns409Conflict()
+    {
+        var (client, createdPoll) = await CreatePollAsync();
+        var option1Id = createdPoll.Options[0].Id;
+        var option2Id = createdPoll.Options[1].Id;
+        var voterId = Guid.NewGuid().ToString();
+
+        var response1 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = option1Id, VoterId = voterId });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = option2Id, VoterId = voterId });
+
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, response2.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vote_DifferentVoterIds_AllSucceed()
+    {
+        var (client, createdPoll) = await CreatePollAsync();
+        var optionId = createdPoll.Options[0].Id;
+
+        var response1 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = Guid.NewGuid().ToString() });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = Guid.NewGuid().ToString() });
+        var response3 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = Guid.NewGuid().ToString() });
+
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response3.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vote_WithoutVoterId_AllowsMultipleVotes()
+    {
+        var (client, createdPoll) = await CreatePollAsync();
+        var optionId = createdPoll.Options[0].Id;
+
+        var response1 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId });
+
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vote_SameVoterIdDifferentPolls_BothSucceed()
+    {
+        var client = _factory.CreateClient();
+        var voterId = Guid.NewGuid().ToString();
+
+        var request1 = new CreatePollRequest
+        {
+            Question = "Poll 1?",
+            Options = new List<string> { "A", "B" }
+        };
+        var createResponse1 = await client.PostAsJsonAsync("/api/polls", request1);
+        var poll1 = await createResponse1.Content.ReadFromJsonAsync<CreatePollResponse>();
+
+        var request2 = new CreatePollRequest
+        {
+            Question = "Poll 2?",
+            Options = new List<string> { "C", "D" }
+        };
+        var createResponse2 = await client.PostAsJsonAsync("/api/polls", request2);
+        var poll2 = await createResponse2.Content.ReadFromJsonAsync<CreatePollResponse>();
+
+        var response1 = await client.PostAsJsonAsync($"/api/polls/{poll1!.RoomCode}/vote",
+            new VoteRequest { OptionId = poll1.Options[0].Id, VoterId = voterId });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{poll2!.RoomCode}/vote",
+            new VoteRequest { OptionId = poll2.Options[0].Id, VoterId = voterId });
+
+        Assert.Equal(HttpStatusCode.OK, response1.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+    }
+
+    [Fact]
+    public async Task Vote_DuplicateVote_ReturnsErrorMessage()
+    {
+        var (client, createdPoll) = await CreatePollAsync();
+        var optionId = createdPoll.Options[0].Id;
+        var voterId = Guid.NewGuid().ToString();
+
+        await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = voterId });
+        var response2 = await client.PostAsJsonAsync($"/api/polls/{createdPoll.RoomCode}/vote",
+            new VoteRequest { OptionId = optionId, VoterId = voterId });
+        var content = await response2.Content.ReadAsStringAsync();
+
+        Assert.Contains("already voted", content, StringComparison.OrdinalIgnoreCase);
+    }
 }

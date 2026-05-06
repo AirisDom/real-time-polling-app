@@ -158,7 +158,12 @@ app.MapPost("/api/polls/{roomCode}/vote", async (string roomCode, VoteRequest re
         return Results.BadRequest(new { error = "Invalid option ID" });
     }
 
-    var success = repository.AddVote(roomCode, request.OptionId);
+    if (!string.IsNullOrWhiteSpace(request.VoterId) && repository.HasVoterVoted(roomCode, request.VoterId))
+    {
+        return Results.Conflict(new { error = "You have already voted in this poll" });
+    }
+
+    var success = repository.AddVote(roomCode, request.OptionId, request.VoterId);
     if (!success)
     {
         return Results.BadRequest(new { error = "Unable to record vote" });

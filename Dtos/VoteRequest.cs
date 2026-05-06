@@ -6,4 +6,6 @@ public class VoteRequest
 {
     [Required(ErrorMessage = "Option ID is required")]
     public int OptionId { get; set; }
+
+    public string? VoterId { get; set; }
 }

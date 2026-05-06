@@ -6,6 +6,7 @@ namespace _1_the_real_time_polling_app_focus_signalr_websockets.Repositories;
 public class InMemoryPollRepository : IPollRepository
 {
     private readonly ConcurrentDictionary<string, Poll> _polls = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _pollVoters = new();
     private int _nextPollId = 1;
     private int _nextOptionId = 1;
     private readonly object _idLock = new();
@@ -38,7 +39,7 @@ public class InMemoryPollRepository : IPollRepository
         return poll;
     }
 
-    public bool AddVote(string roomCode, int optionId)
+    public bool AddVote(string roomCode, int optionId, string? voterId = null)
     {
         if (!_polls.TryGetValue(roomCode, out var poll))
         {
@@ -56,9 +57,35 @@ public class InMemoryPollRepository : IPollRepository
             return false;
         }
 
-        // Thread-safe increment using Interlocked
+        if (!string.IsNullOrWhiteSpace(voterId))
+        {
+            var voters = _pollVoters.GetOrAdd(roomCode, _ => new HashSet<string>());
+            lock (voters)
+            {
+                voters.Add(voterId);
+            }
+        }
+
         Interlocked.Increment(ref option._voteCount);
         return true;
+    }
+
+    public bool HasVoterVoted(string roomCode, string voterId)
+    {
+        if (string.IsNullOrWhiteSpace(voterId))
+        {
+            return false;
+        }
+
+        if (!_pollVoters.TryGetValue(roomCode, out var voters))
+        {
+            return false;
+        }
+
+        lock (voters)
+        {
+            return voters.Contains(voterId);
+        }
     }
 
     public Dictionary<int, int>? GetResults(string roomCode)
