@@ -1,4 +1,5 @@
 using _1_the_real_time_polling_app_focus_signalr_websockets.Dtos;
+using _1_the_real_time_polling_app_focus_signalr_websockets.Hubs;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Models;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Repositories;
 using _1_the_real_time_polling_app_focus_signalr_websockets.Services;
@@ -15,6 +16,19 @@ builder.Services.AddSingleton<IPollRepository, InMemoryPollRepository>();
 // Register the room code generator
 builder.Services.AddSingleton<IRoomCodeGenerator, RoomCodeGenerator>();
 
+builder.Services.AddSignalR();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("SignalRCors", policy =>
+    {
+        policy.AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials()
+              .SetIsOriginAllowed(_ => true);
+    });
+});
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -24,6 +38,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+app.UseCors("SignalRCors");
+
+app.MapHub<PollHub>("/hubs/poll");
 
 // POST /api/polls - Create a new poll
 app.MapPost("/api/polls", (CreatePollRequest request, IPollRepository repository, IRoomCodeGenerator codeGenerator) =>
