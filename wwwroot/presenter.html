@@ -311,9 +311,85 @@
             margin-bottom: 15px;
             font-size: 0.85rem;
         }
+
+        .nav {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: white;
+        }
+
+        .nav-link.active {
+            color: white;
+            border-bottom: 2px solid white;
+            padding-bottom: 2px;
+        }
+
+        body {
+            padding-top: 70px;
+        }
+
+        @media (max-width: 600px) {
+            .nav-brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                gap: 15px;
+            }
+
+            .nav-link {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Real-Time Polling</a>
+            <div class="nav-links">
+                <a href="presenter.html" class="nav-link active">Create Poll</a>
+                <a href="voter.html" class="nav-link">Join Poll</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
         <h1>Create a New Poll</h1>
 
@@ -364,6 +440,7 @@
                 </div>
 
                 <div class="action-links">
+                    <a href="#" id="view-results-link" class="action-link primary">View Live Results</a>
                     <button type="button" class="close-poll-btn" id="close-poll-btn">Close Poll</button>
                     <button type="button" class="new-poll-btn" id="new-poll-btn">Create Another Poll</button>
                 </div>
@@ -457,6 +534,7 @@
             currentRoomCode = data.roomCode;
             document.getElementById('room-code').textContent = data.roomCode;
             document.getElementById('created-question').textContent = data.question;
+            document.getElementById('view-results-link').href = `dashboard.html?room=${data.roomCode}`;
 
             const optionsList = document.getElementById('created-options');
             optionsList.innerHTML = '';

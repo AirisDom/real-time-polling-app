@@ -266,9 +266,85 @@
         .back-link:hover {
             color: white;
         }
+
+        .nav {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-link:hover {
+            color: white;
+        }
+
+        .nav-link.active {
+            color: white;
+            border-bottom: 2px solid white;
+            padding-bottom: 2px;
+        }
+
+        body {
+            padding-top: 70px;
+        }
+
+        @media (max-width: 600px) {
+            .nav-brand {
+                font-size: 1rem;
+            }
+
+            .nav-links {
+                gap: 15px;
+            }
+
+            .nav-link {
+                font-size: 0.9rem;
+            }
+        }
     </style>
 </head>
 <body>
+    <nav class="nav">
+        <div class="nav-container">
+            <a href="index.html" class="nav-brand">Real-Time Polling</a>
+            <div class="nav-links">
+                <a href="presenter.html" class="nav-link">Create Poll</a>
+                <a href="voter.html" class="nav-link active">Join Poll</a>
+            </div>
+        </div>
+    </nav>
+
     <div class="container">
         <h1>Join Poll</h1>
 
@@ -501,6 +577,17 @@
         roomCodeInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
         });
+
+        function getRoomCodeFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('room') || params.get('roomCode') || params.get('code');
+        }
+
+        const urlRoomCode = getRoomCodeFromUrl();
+        if (urlRoomCode && /^\d{4}$/.test(urlRoomCode)) {
+            roomCodeInput.value = urlRoomCode;
+            joinPoll(urlRoomCode);
+        }
     </script>
 </body>
 </html>
